@@ -12,17 +12,20 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(ANDROID)
-    add_library(deep-beep SHARED main.cpp qml.qrc)
+    add_library(deep-beep SHARED main.cpp pipeline.cpp qml.qrc)
 else()
-    add_executable(deep-beep main.cpp qml.qrc)
+    add_executable(deep-beep main.cpp pipeline.cpp qml.qrc)
+    add_executable(imgproc imgproc.cpp pipeline.cpp)
 endif()
 
 target_compile_definitions(deep-beep
   PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 target_link_libraries(deep-beep
-  PRIVATE Qt5::Core Qt5::Quick)
+    PRIVATE Qt5::Core Qt5::Quick ${OpenCV_LIBS})
+target_link_libraries(imgproc ${OpenCV_LIBS})
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check http://doc.qt.io/qt-5/deployment-android.html for more information.
