@@ -1,3 +1,6 @@
+#ifndef DEEPBEEP_DATA_H_
+#define DEEPBEEP_DATA_H_
+
 #include <vector>
 
 enum class Naturality {
@@ -30,3 +33,4 @@ public:
 using Chord = std::vector<Note>;
 using Song = std::vector<Chord>;
 
+#endif // DEEPBEEP_DATA_H_
