@@ -11,14 +11,16 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(SOURCES pipeline.cpp data.cpp)
+
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 find_package(OpenCV REQUIRED)
 
 if(ANDROID)
-    add_library(deep-beep SHARED main.cpp pipeline.cpp qml.qrc)
+    add_library(deep-beep SHARED main.cpp ${SOURCES} qml.qrc)
 else()
-    add_executable(deep-beep main.cpp pipeline.cpp qml.qrc)
-    add_executable(imgproc imgproc.cpp pipeline.cpp)
+    add_executable(deep-beep main.cpp ${SOURCES} qml.qrc)
+    add_executable(imgproc imgproc.cpp ${SOURCES})
 endif()
 
 target_compile_definitions(deep-beep
