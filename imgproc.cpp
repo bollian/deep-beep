@@ -3,6 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <algorithm>
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -13,22 +14,170 @@ int main(int argc, char **argv) {
     cv::Mat image;
     image = cv::imread(argv[1]);
   	
-	cv::GaussianBlur( image, image, cv::Size( 13, 0 ), 0, 0.01 );	
+	//cv::GaussianBlur( image, image, cv::Size( 13, 0 ), 0, 0.01 );	
 
 	cv::pyrDown(image, image, cv::Size(image.cols /2, image.rows / 2));
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     cv::Mat binary;
-    cv::inRange(image, cv::Scalar(0, 0, 0), cv::Scalar(185, 185, 185), binary); 
+    cv::inRange(image, cv::Scalar(0, 0, 0), cv::Scalar(225, 225, 225), binary); 
 	
+
+
+
+
+
+     cv::Mat horizontal = binary.clone();
+
+
+
+
+            // Specify size on horizontal axis
+    int horizontal_size = horizontal.cols / 30;
+    // Create structure element for extracting horizontal lines through morphology operations
+    cv::Mat horizontalStructure = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(horizontal_size, 1));
+    // Apply morphology operations
+    erode(horizontal, horizontal, horizontalStructure, cv::Point(-1, -1));
+    dilate(horizontal, horizontal, horizontalStructure, cv::Point(-1, -1));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     std::vector<cv::Vec4i> houghOut;
-    cv::HoughLinesP(binary, houghOut, 1, CV_PI /180, 150, 150 ,40); 
+    cv::HoughLinesP(horizontal, houghOut, 1, CV_PI /180, 150, 100 , 80); 
+	double slopeSum = 0;
 
 	for(int j = 0; j < houghOut.size(); j++)
         {
-		std::cout << houghOut[j][0] << "\t" << houghOut[j][1] << "\t" << houghOut[j][2] << "\t" <<  houghOut[j][3] << std::endl;
-                cv::line( image, cv::Point(houghOut[j][0], houghOut[j][1]), cv::Point(houghOut[j][2], houghOut[j][3]), cv::Scalar(255,0,0), 3, cv::LINE_AA);
+               
+	       	double slope = ((double)houghOut[j][1] - (double)houghOut[j][3]) / (houghOut[j][0] - houghOut[j][2]);
+		
+		slopeSum += slope;
         }
+	
+double slopeAvg = slopeSum/houghOut.size();
+	
+	cv::Mat staffLines(image.rows, image.cols, binary.type());
+	staffLines = 0;
+	
+	for(int j = 0; j < houghOut.size(); j++)
+        {
+                double slope = ((double)houghOut[j][1] - (double)houghOut[j][3]) / (houghOut[j][0] - houghOut[j][2]);
+		if(abs(slopeAvg - slope) < .02)
+		{
+                cv::line( staffLines, cv::Point(houghOut[j][0], houghOut[j][1]), cv::Point(houghOut[j][2], houghOut[j][3]), cv::Scalar(255,0,0), 1, cv::LINE_AA);
+		}
+	}
+
+
+
+
+
+
+std::vector<cv::Vec4i> houghOut2;
+    cv::HoughLinesP(staffLines, houghOut2, 1, CV_PI /180, 200, 400 , 400);
+
+
+
+double slopeSum2 = 0;
+
+        for(int j = 0; j < houghOut2.size(); j++)
+        {
+
+                double slope = ((double)houghOut2[j][1] - (double)houghOut2[j][3]) / (houghOut2[j][0] - houghOut2[j][2]);
+
+                slopeSum2 += slope;
+        }
+
+double slopeAvg2 = slopeSum2/houghOut2.size();
+
+        for(auto j = houghOut2.begin(); j != houghOut2.end(); j++)
+        {
+                double slope = ((double)(*j)[1] - (double)(*j)[3]) / ((*j)[0] - (*j)[2]);
+                if(abs(slopeAvg2 - slope) > .015)
+                {
+                	houghOut2.erase(j);
+                }
+        }
+
+
+
+
+
+   std::vector<int> lineCluster;
+
+	lineCluster.push_back(houghOut2[0][1] + (houghOut2[0][1] - houghOut2[0][3])/2);
+
+        for(int j = 1; j < houghOut2.size(); j++)
+        {
+                cv::line(image, cv::Point(houghOut2[j][0], houghOut2[j][1]), cv::Point(houghOut2[j][2], houghOut2[j][3]), cv::Scalar(0,255,0), 1, cv::LINE_AA);
+		bool fit = false;
+		int midpoint = houghOut2[j][1] + (houghOut2[j][1] - houghOut2[j][3])/2;
+		for(int curclust = 0; curclust < lineCluster.size(); curclust++)
+		{
+			if(abs(midpoint - lineCluster[curclust]) <= 3)
+			{
+				fit = true;
+				/*if(midpoint < lineCluster[curclust])
+				{
+					lineCluster[curclust]--;
+				}
+				else
+				{
+					lineCluster[curclust]++;
+				}*/
+			}
+		}
+		if(!fit)
+		{
+			lineCluster.push_back(midpoint);
+		}
+        }
+
+
+	  for(int curclust = 0; curclust < lineCluster.size(); curclust++)
+                {
+			cv::line( image, cv::Point(0, lineCluster[curclust]), cv::Point(2000, lineCluster[curclust]), cv::Scalar(255,0,0), 1, cv::LINE_AA);
+		}
+
+	  std::sort(lineCluster.begin(), lineCluster.end());
+
+
+	  std::vector<std::vector<int>> staffs;
+
+	for(int i = 0; i < lineCluster.size(); i++)
+	{	
+		std::cout << lineCluster[i]<< std::endl;
+	}	
+
+
+
+
+
+
+
     
     //display steps
    cv::namedWindow("Step 0", cv::WINDOW_AUTOSIZE);
@@ -37,90 +186,11 @@ int main(int argc, char **argv) {
    cv::namedWindow("Step 1", cv::WINDOW_AUTOSIZE);
    cv::imshow("Step 1", binary);
 
-  /* std::vector<std::vector<cv::Vec2f>> staves;
-   std::vector<cv::Vec2f> potentialStaff;
-   double staffAngle;
-   int staffCount = 5;
+   cv::namedWindow("Step 2.5", cv::WINDOW_AUTOSIZE);
+   cv::imshow("Step 2.5", horizontal);
 
-   for(auto i = houghOut.begin(); i != houghOut.end(); i++)
-   {
-	double angle = (*i)[1];
-	if(!(angle > 1.5 && angle < 1.7))
-	{
-		houghOut.erase(i);
-		i--;
-	}
-   }
-
- for(int j = 0; j < houghOut.size(); j++)
-        {
-                std::cout << houghOut[j][0] << "\t" << houghOut[j][1] << std::endl;
-
-                float rho = houghOut[j][0], theta = houghOut[j][1];
-                cv::Point pt1, pt2;
-                double a = cos(theta), b = sin(theta);
-                double x0 = a*rho, y0 = b*rho;
-                pt1.x = cvRound(x0 + 1000*(-b));
-                pt1.y = cvRound(y0 + 1000*(a));
-                pt2.x = cvRound(x0 - 1000*(-b));
-                pt2.y = cvRound(y0 - 1000*(a));
-                cv::line( image, pt1, pt2, cv::Scalar(0,255,0), 3, cv::LINE_AA);
-        }
-
-
-   for(int i = 0; i < houghOut.size() - 2; i++)
-   {
-	potentialStaff.push_back(houghOut[i]);
-	for(int j = i + 1; j < houghOut.size() - 1; j++)
-	{
-		if( abs(houghOut[j][1] - potentialStaff[0][1]) < .05)
-		{
-			potentialStaff.push_back(houghOut[j]);
-			int staffStep = potentialStaff[1][0] - potentialStaff[0][0];
-			for(int k = j + 1; k < houghOut.size(); k++)
-			{
-				if(abs(houghOut[k][0] - potentialStaff[potentialStaff.size() - 1][0] - staffStep) < 1 && abs(houghOut[k][1] - potentialStaff[0][1]) < .05)
-				{
-					potentialStaff.push_back(houghOut[k]);
-				}
-			}
-
-			if(potentialStaff.size() == 5)
-			{
-				staves.push_back(std::vector<cv::Vec2f>(potentialStaff));
-				break;
-			}
-			while(potentialStaff.size() > 1)
-			{
-				potentialStaff.pop_back();
-			}
-		}
-	}
-	potentialStaff.clear();
-   }
-
-   for(int i = 0; i < staves.size(); i++)
-   {
-	   std::vector<cv::Vec2f> currStaff = staves[i];
-	for(int j = 0; j < currStaff.size(); j++)
-	{
-		float rho = currStaff[j][0], theta = currStaff[j][1];
-		cv::Point pt1, pt2;
-        	double a = cos(theta), b = sin(theta);
-        	double x0 = a*rho, y0 = b*rho;
-		pt1.x = cvRound(x0 + 2000*(-b));
-		pt1.y = cvRound(y0 + 2000*(a));
-		pt2.x = cvRound(x0 - 2000*(-b));
-		pt2.y = cvRound(y0 - 2000*(a));
-		cv::line( image, pt1, pt2, cv::Scalar(0,0,255), 3, cv::LINE_AA);
-	}
-   }
-
-
-   cv::namedWindow("Step 3*", cv::WINDOW_AUTOSIZE);
-   cv::imshow("Step 3*", image);
-
-*/
+cv::namedWindow("big brain time", cv::WINDOW_AUTOSIZE);
+cv::imshow("big brain time", staffLines);
    
    cv::waitKey();
 
