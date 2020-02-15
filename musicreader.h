@@ -10,6 +10,9 @@ class MusicReader : public QObject {
 public:
     explicit MusicReader(QObject *parent = nullptr);
 
+public slots:
+    void readSong();
+
 signals:
     void songRead(Song song);
 

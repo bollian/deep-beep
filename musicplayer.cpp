@@ -12,7 +12,7 @@ MusicPlayer::MusicPlayer(QObject *parent) : QObject(parent),
     current_song()
 {
     this->audio_format.setCodec("audio/pcm");
-    this->audio_format.setSampleRate(8000);
+    this->audio_format.setSampleRate(44'100);
     this->audio_format.setSampleSize(8);
     this->audio_format.setChannelCount(1);
     this->audio_format.setByteOrder(QAudioFormat::Endian::LittleEndian);
@@ -22,7 +22,7 @@ MusicPlayer::MusicPlayer(QObject *parent) : QObject(parent),
 }
 
 void MusicPlayer::setSong(Song song) {
-    this->current_song = std::make_unique<Song>(std::move(song));
+    this->current_song = std::move(song);
 }
 
 void MusicPlayer::playSong() {
@@ -30,5 +30,5 @@ void MusicPlayer::playSong() {
         this->buffer_bytes.clear();
         audio_buffer.seek(0);
     }
-    std::cout << "Song played!" << std::endl;
+    std::cout << "Song " << this->current_song.size() << " played!" << std::endl;
 }

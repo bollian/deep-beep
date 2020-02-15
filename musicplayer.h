@@ -20,7 +20,7 @@ private:
     QByteArray buffer_bytes;
     QBuffer audio_buffer;
 
-    std::unique_ptr<Song> current_song;
+    Song current_song;
 
 public:
     explicit MusicPlayer(QObject *parent = nullptr);

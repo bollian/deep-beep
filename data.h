@@ -1,6 +1,7 @@
 #ifndef DEEPBEEP_DATA_H_
 #define DEEPBEEP_DATA_H_
 
+#include <exception>
 #include <vector>
 
 enum class Naturality {
@@ -11,22 +12,25 @@ enum class Naturality {
 
 class Note {
 private:
-    Note(int pitch, int sixteenths, Naturality modifier);
+    Note(int a4_distance, int sixteenths, Naturality modifier);
 
-    int pitch;
+    int a4_distance;
     int sixteenths;
     Naturality modifier;
 
 public:
-    static Note whole_note(int e_distance, Naturality modifier);
-    static Note half_note(int e_distance, Naturality modifier);
-    static Note quarter_note(int e_distacne, Naturality modifier);
-    static Note eigth_note(int e_distance, Naturality modifier);
-    static Note sixteenth_note(int e_distance, Naturality modifier);
+    static Note whole(int a4_distance, Naturality modifier = Naturality::Natural);
+    static Note half(int a4_distance, Naturality modifier = Naturality::Natural);
+    static Note quarter(int a4_distance, Naturality modifier = Naturality::Natural);
+    static Note eigth(int a4_distance, Naturality modifier = Naturality::Natural);
+    static Note sixteenth(int a4_distance, Naturality modifier = Naturality::Natural);
 
     int getPitch() const;
     int getSixteenthsDuration() const;
     Naturality getModifier() const;
+
+    float getFrequency() const;
+    float getUSecDuration() const;
 
 };
 
