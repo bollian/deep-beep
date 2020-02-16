@@ -59,6 +59,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(lib/fluidsynth)
 
 configure_file("assets/Grand Piano.sf2" "assets/Grand Piano.sf2" COPYONLY)
+configure_file(assets/note-template.png assets/note-template.png COPYONLY)
 
 if(ANDROID)
     add_library(deep-beep SHARED ${GUI_SOURCES} ${SOURCES})

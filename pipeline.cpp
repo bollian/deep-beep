@@ -12,6 +12,8 @@ std::vector<cv::Vec4i> completeHorizontalLines(cv::Mat horiz_line_sements);
 std::vector<int> sortedYPositions(std::vector<cv::Vec4i> lines);
 std::vector<std::vector<int> > clusterStaves(std::vector<int> line_ys, int img_columns);
 
+std::vector<cv::Rect> noteRectangles(cv::Mat binary_notes);
+
 Song readImage(cv::Mat image) {
     Song song;
 
@@ -19,7 +21,7 @@ Song readImage(cv::Mat image) {
     cv::resize(image, image, cv::Size(770, 988));
     cv::Mat binary = initialBinarize(image);
     cv::Mat binary_staves = isolateStaffs(binary);
-    cv::Mat binary_notes = isolateNotes(binary);
+    cv::Mat binary_notes = isolateNotes(image);
 
     cv::Mat horizontal_segments = horizontalHoughSegments(binary_staves);
     std::vector<cv::Vec4i> full_lines = completeHorizontalLines(horizontal_segments);
@@ -27,9 +29,18 @@ Song readImage(cv::Mat image) {
     std::vector<std::vector<int> > staves = clusterStaves(valid_line_ys, image.cols);
     std::cout << "Found " << staves.size() << " staves" << std::endl;
 
+    std::vector<cv::Rect> note_rects = noteRectangles(binary_notes);
+
+    // draw the rectangles
+    cv::Mat rect_img = cv::Mat::zeros(image.size(), image.type());
+    for (int i = 0; i < note_rects.size(); ++i) {
+        auto color = cv::Scalar(255, 255, 255);
+        cv::rectangle(rect_img, note_rects[i].tl(), note_rects[i].br(), color, 2);
+    }
+
     //display steps
-    for(int i = 0; i < staves.size(); i++) {
-        for(int j = 0; j < staves[i].size(); j++) {
+    for (int i = 0; i < staves.size(); i++) {
+        for (int j = 0; j < staves[i].size(); j++) {
             int y = staves[i][j];
             cv::line(image, cv::Point(0, y), cv::Point(2000, y), cv::Scalar(50*j,20*i,0), 1, cv::LINE_AA);
         }
@@ -40,14 +51,19 @@ Song readImage(cv::Mat image) {
     cv::namedWindow("First Thresholding", cv::WINDOW_AUTOSIZE);
     cv::imshow("First Thresholding", binary);
 
-    cv::namedWindow("Morphised Staff Lines", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Morphised Staff Lines", binary_staves);
+    cv::imwrite("binary-image.png", binary);
 
-    cv::namedWindow("big brain time", cv::WINDOW_AUTOSIZE);
-    cv::imshow("big brain time", horizontal_segments);
+    // cv::namedWindow("Morphised Staff Lines", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Morphised Staff Lines", binary_staves);
+    //
+    // cv::namedWindow("big brain time", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("big brain time", horizontal_segments);
 
     cv::namedWindow("Morphised Notes", cv::WINDOW_AUTOSIZE);
     cv::imshow("Morphised Notes", binary_notes);
+
+    cv::namedWindow("Bounding Rectangles", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Bounding Rectangles", rect_img);
 
     cv::waitKey();
 
@@ -82,17 +98,20 @@ cv::Mat isolateStaffs(cv::Mat bin_image) {
     return staves;
 }
 
-cv::Mat isolateNotes(cv::Mat bin_image) {
+cv::Mat isolateNotes(cv::Mat image) {
     std::cout << "isolateNotes" << std::endl;
+
     int vertical_size = 5;
-    cv::Mat verticalStructure = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1, vertical_size));
+    cv::Mat verticalStructure = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(vertical_size, vertical_size));
+
+    cv::Mat binary;
+    cv::inRange(image, cv::Scalar(0, 0, 0), cv::Scalar(225, 225, 225), binary); 
 
     // Apply morphology operations
-    cv::Mat notes;
-    erode(bin_image, notes, verticalStructure, cv::Point(-1, -1));
-    dilate(notes, notes, verticalStructure, cv::Point(-1, -1));
+    erode(binary, binary, verticalStructure, cv::Point(-1, -1));
+    dilate(binary, binary, verticalStructure, cv::Point(-1, -1));
 
-    return notes;
+    return binary;
 }
 
 cv::Mat horizontalHoughSegments(cv::Mat horiz_line_image) {
@@ -251,4 +270,44 @@ std::vector<std::vector<int> > clusterStaves(std::vector<int> line_ys, int img_c
     }
 
     return staves;
+}
+
+std::vector<cv::Rect> noteRectangles(cv::Mat binary_notes) {
+    std::cout << "noteRectangles" << std::endl;
+
+    cv::Mat canny;
+    cv::Canny(binary_notes, canny, 128, 255);
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(canny, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    std::vector<std::vector<cv::Point> > contours_poly(contours.size());
+    std::vector<cv::Rect> bounding_rects(contours.size());
+
+    for (int i = 0; i < contours.size(); ++i) {
+        cv::approxPolyDP(contours[i], contours_poly[i], 3, true);
+        bounding_rects[i] = cv::boundingRect(contours_poly[i]);
+    }
+    // remove objects with extra wide aspect ratios to filter out
+    // the ties between eigth and sixteenth notes
+    for (int i = 0; i < bounding_rects.size(); ++i) {
+        if (bounding_rects[i].width > (2 * bounding_rects[i].height)) {
+            bounding_rects.erase(bounding_rects.begin() + i);
+            contours_poly.erase(contours_poly.begin() + i);
+            --i;
+        }
+    }
+    // remove extraordinarily large objects to filter out punch holes
+    int total_width = 0;
+    for (const cv::Rect& rect : bounding_rects) {
+        total_width += rect.width;
+    }
+    int max_width = 2 * total_width / bounding_rects.size();
+    for (int i = 0; i < bounding_rects.size(); ++i) {
+        if (bounding_rects[i].width > max_width) {
+            bounding_rects.erase(bounding_rects.begin() + i);
+            contours_poly.erase(contours_poly.begin() + i);
+            --i;
+        }
+    }
+
+    return bounding_rects;
 }
