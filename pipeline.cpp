@@ -23,9 +23,9 @@ Song readImage(cv::Mat image) {
 
     cv::Mat horizontal_segments = horizontalHoughSegments(binary_staves);
     std::vector<cv::Vec4i> full_lines = completeHorizontalLines(horizontal_segments);
-    // std::vector<int> valid_line_ys = sortedYPositions(full_lines);
-    // std::vector<std::vector<int> > staves = clusterStaves(valid_line_ys, image.cols);
-    // std::cout << "Found " << staves.size() << " staves" << std::endl;
+    std::vector<int> valid_line_ys = sortedYPositions(full_lines);
+    std::vector<std::vector<int> > staves = clusterStaves(valid_line_ys, image.cols);
+    std::cout << "Found " << staves.size() << " staves" << std::endl;
 
     //display steps
     cv::namedWindow("Initial Image", cv::WINDOW_AUTOSIZE);
@@ -146,6 +146,7 @@ std::vector<int> sortedYPositions(std::vector<cv::Vec4i> lines) {
     std::cout << "sortedYPositions" << std::endl;
     //cluster really close lines to make potential staff lines
     if (lines.empty()) {
+        std::cerr << "Didn't receive any hough lines to sort" << std::endl;
         return std::vector<int>();
     }
 
