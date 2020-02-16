@@ -21,6 +21,8 @@
 
 cmake_minimum_required ( VERSION 3.1.0 ) # because of CMAKE_C_STANDARD
 project ( FluidSynth C )
+set(CMAKE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/lib/fluidsynth)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set ( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake_admin )
 
 # FluidSynth package name

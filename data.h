@@ -12,18 +12,18 @@ enum class Naturality {
 
 class Note {
 private:
-    Note(int a4_distance, int sixteenths, Naturality modifier);
+    Note(int c4_distance, int sixteenths, Naturality modifier);
 
-    int a4_distance;
+    int c4_distance;
     int sixteenths;
     Naturality modifier;
 
 public:
-    static Note whole(int a4_distance, Naturality modifier = Naturality::Natural);
-    static Note half(int a4_distance, Naturality modifier = Naturality::Natural);
-    static Note quarter(int a4_distance, Naturality modifier = Naturality::Natural);
-    static Note eigth(int a4_distance, Naturality modifier = Naturality::Natural);
-    static Note sixteenth(int a4_distance, Naturality modifier = Naturality::Natural);
+    static Note whole(int c4_distance, Naturality modifier = Naturality::Natural);
+    static Note half(int c4_distance, Naturality modifier = Naturality::Natural);
+    static Note quarter(int c4_distance, Naturality modifier = Naturality::Natural);
+    static Note eigth(int c4_distance, Naturality modifier = Naturality::Natural);
+    static Note sixteenth(int c4_distance, Naturality modifier = Naturality::Natural);
 
     int getPitch() const;
     int getSixteenthsDuration() const;

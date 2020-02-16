@@ -19,7 +19,7 @@ find_package(OpenCV REQUIRED)
 
 # disable as many options as possible for fluidsynth
 set(enable-aufile "compile support for sound file output" off)
-set(BUILD_SHARED_LIBS "Build a shared object or DLL" off)
+set(BUILD_SHARED_LIBS "Build a shared object or DLL" on)
 set(enable-dbus "compile DBUS support (if it is available)" off)
 set(enable-ipv6  "enable ipv6 support" off)
 set(enable-jack "compile JACK support (if it is available)" off)
@@ -36,10 +36,29 @@ set(enable-waveout "compile Windows WaveOut support (if it is available)" off)
 set(enable-winmidi "compile Windows MIDI support (if it is available)" off)
 set(enable-sdl2 "compile SDL2 audio support (if it is available)" off)
 set(enable-pkgconfig "use pkg-config to locate fluidsynth's (mostly optional) dependencies" on)
-set(enable-pulseaudio "compile PulseAudio support (if it is available)" off)
+set(enable-pulseaudio "compile PulseAudio support (if it is available)" on)
 set(enable-readline "compile readline lib line editing (if it is available)" off)
 set(enable-threads "enable multi-threading support (such as parallel voice synthesis)" off)
+
+# linux specific
+set(enable-lash "compile LASH support (if it is available)" off)
+set(enable-alsa "compile ALSA support (if it is available)" off)
+set(enable-systemd "compile systemd support (if it is available)" off)
+
+# dawin (apple) specific
+set(enable-coreaudio "compile CoreAudio support (if it is available)" off)
+set(enable-coremidi "compile CoreMIDI support (if it is available)" off)
+set(enable-framework "create a Mac OSX style FluidSynth.framework" off)
+
+# OS2
+set(enable-dart "compile DART support (if it is available)" off)
+
+# this is required for fluidsynth to link to glib
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(lib/fluidsynth)
+
+configure_file("assets/Grand Piano.sf2" "assets/Grand Piano.sf2" COPYONLY)
 
 if(ANDROID)
     add_library(deep-beep SHARED ${GUI_SOURCES} ${SOURCES})
@@ -48,10 +67,12 @@ else()
     add_executable(imgproc imgproc.cpp ${SOURCES})
 endif()
 
+link_directories(lib/fluidsynth/src)
+
 target_compile_definitions(deep-beep
   PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 target_link_libraries(deep-beep
-    PRIVATE Qt5::Core Qt5::Quick Qt5::Multimedia ${OpenCV_LIBS})
+    PRIVATE Qt5::Core Qt5::Quick Qt5::Multimedia ${OpenCV_LIBS} libfluidsynth)
 target_link_libraries(imgproc ${OpenCV_LIBS})
 
 # give us newer c++ features
@@ -59,6 +80,9 @@ set_property(TARGET deep-beep PROPERTY CXX_STANDARD 14)
 set_property(TARGET imgproc PROPERTY CXX_STANDARD 14)
 set_property(TARGET deep-beep PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET imgproc PROPERTY CXX_STANDARD_REQUIRED ON)
+
+target_include_directories(deep-beep PRIVATE lib/fluidsynth/include)
+target_include_directories(deep-beep PRIVATE ${CMAKE_BINARY_DIR}/include)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check http://doc.qt.io/qt-5/deployment-android.html for more information.

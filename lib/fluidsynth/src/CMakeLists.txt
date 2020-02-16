@@ -19,6 +19,8 @@
 
 # CMake based build system. Pedro Lopez-Cabanillas <plcl@users.sf.net>
 
+set(CMAKE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/lib/fluidsynth)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include_directories (
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/src
