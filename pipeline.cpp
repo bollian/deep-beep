@@ -28,6 +28,12 @@ Song readImage(cv::Mat image) {
     std::cout << "Found " << staves.size() << " staves" << std::endl;
 
     //display steps
+    for(int i = 0; i < staves.size(); i++) {
+        for(int j = 0; j < staves[i].size(); j++) {
+            int y = staves[i][j];
+            cv::line(image, cv::Point(0, y), cv::Point(2000, y), cv::Scalar(50*j,20*i,0), 1, cv::LINE_AA);
+        }
+    }
     cv::namedWindow("Initial Image", cv::WINDOW_AUTOSIZE);
     cv::imshow("Initial Image", image);
 
