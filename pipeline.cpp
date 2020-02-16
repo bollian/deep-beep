@@ -16,7 +16,7 @@ Song readImage(cv::Mat image) {
     Song song;
 
     //scales big phone pictures.
-    cv::pyrDown(image, image, cv::Size(image.cols / 2, image.rows / 2));
+    cv::resize(image, image, cv::Size(770, 988));
     cv::Mat binary = initialBinarize(image);
     cv::Mat binary_staves = isolateStaffs(binary);
     cv::Mat binary_notes = isolateNotes(binary);
@@ -57,7 +57,8 @@ Song readImage(cv::Mat image) {
 cv::Mat initialBinarize(cv::Mat image) {
     std::cout << "initialBinarize" << std::endl;
     cv::Mat binary;
-    cv::inRange(image, cv::Scalar(0, 0, 0), cv::Scalar(225, 225, 225), binary); 
+    cv:cvtColor(image, binary, cv::COLOR_RGB2GRAY);
+    cv::adaptiveThreshold(binary, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 11, 4); 
     return binary;
 }
 
@@ -66,9 +67,16 @@ cv::Mat isolateStaffs(cv::Mat bin_image) {
     int horizontal_size = bin_image.cols / 30;
     cv::Mat horiz_structure = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(horizontal_size, 1));
 
+    int horizontal_size2 = 9;
+    cv::Mat horiz_structure2 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(horizontal_size2, 1));
+
     // apply morphology operations
     cv::Mat staves;
-    erode(bin_image, staves, horiz_structure, cv::Point(-1, -1));
+    dilate(bin_image, staves, horiz_structure2, cv::Point(-1, -1));
+    erode(staves, staves, horiz_structure2, cv::Point(-1, -1));
+
+
+    erode(staves, staves, horiz_structure, cv::Point(-1, -1));
     dilate(staves, staves, horiz_structure, cv::Point(-1, -1));
 
     return staves;
@@ -92,7 +100,7 @@ cv::Mat horizontalHoughSegments(cv::Mat horiz_line_image) {
     //first hough transform this begins to isolate the staff lines out by finding chucks of them
     std::vector<cv::Vec4i> hough_out;
     cv::HoughLinesP(horiz_line_image, hough_out, 1, CV_PI / 180, 150, 100, 80); 
-
+	std::cout << hough_out.size() << std::endl;
     double slope_sum = 0.0;
     for (const cv::Vec4i& hough_seg : hough_out) {
         double slope =
@@ -101,19 +109,21 @@ cv::Mat horizontalHoughSegments(cv::Mat horiz_line_image) {
         slope_sum += slope;
     }
 
+
     // slope filtering to rat out noice and eighth note bars
     // this will purify the lines a little so staffs are easier to pick out
     double slope_avg = slope_sum / hough_out.size();
 
     cv::Mat staff_lines(horiz_line_image.rows, horiz_line_image.cols, CV_8UC1);
     staff_lines = 0;
+    std::cout << "fuck" << std::endl;
 
     for (const cv::Vec4i& hough_seg : hough_out)
     {
         double slope = ((double)hough_seg[1] - (double)hough_seg[3]) / (hough_seg[0] - hough_seg[2]);
         if(abs(slope_avg - slope) < .02)
         {
-            cv::line(staff_lines, cv::Point(hough_seg[0], hough_seg[1]), cv::Point(hough_seg[2], hough_seg[3]), cv::Scalar(255,0,0), 1, cv::LINE_AA);
+            cv::line(staff_lines, cv::Point(hough_seg[0], hough_seg[1]), cv::Point(hough_seg[2], hough_seg[3]), cv::Scalar(255,0,0), 2, cv::LINE_AA);
         }
     }
 
@@ -129,19 +139,24 @@ std::vector<cv::Vec4i> completeHorizontalLines(cv::Mat horiz_line_sements) {
 
     //slope filter agian to pull any other inconsistent lines
     double slope_sum = 0.0;
+ std::cout << "hi" << std::endl;
 
     for (const cv::Vec4i& hough_seg : hough_out) {
         double slope = ((double)hough_seg[1] - (double)hough_seg[3]) / (hough_seg[0] - hough_seg[2]);
         slope_sum += slope;
     }
 
+ std::cout << "hi" << std::endl;
+
     double slope_avg = slope_sum / hough_out.size();
 
-    for(auto j = hough_out.begin(); j != hough_out.end(); j++) {
-        double slope = ((double)(*j)[1] - (double)(*j)[3]) / ((*j)[0] - (*j)[2]);
-        if(abs(slope_avg - slope) > .015)
+    for(int j = 0; j < hough_out.size(); j++) {
+        double slope = ((double)hough_out[j][1] - (double)hough_out[j][3]) / (hough_out[j][0] - hough_out[j][2]);
+        if(abs(slope_avg - slope) > .02)
         {
-            hough_out.erase(j);
+            auto at_point = hough_out.begin() + j;
+	    hough_out.erase(at_point);
+	    j--;
         }
     }
 
