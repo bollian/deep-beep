@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <opencv2/opencv.hpp>
 
 #include <data.h>
@@ -13,6 +15,9 @@ std::vector<int> sortedYPositions(std::vector<cv::Vec4i> lines);
 std::vector<std::vector<int> > clusterStaves(std::vector<int> line_ys, int img_columns);
 
 std::vector<cv::Rect> noteRectangles(cv::Mat binary_notes);
+
+int intersectingLineIndex(cv::Rect note_bounds, const std::vector<int>& staff);
+bool rectsOverlap(const cv::Rect& a, const cv::Rect& b);
 
 Song readImage(cv::Mat image) {
     Song song;
@@ -30,6 +35,46 @@ Song readImage(cv::Mat image) {
     std::cout << "Found " << staves.size() << " staves" << std::endl;
 
     std::vector<cv::Rect> note_rects = noteRectangles(binary_notes);
+
+    for (const std::vector<int>& staff : staves) {
+        std::vector<cv::Rect> staff_notes;
+
+        for (const cv::Rect note : note_rects) {
+            if (intersectingLineIndex(note, staff) >= 0) {
+                staff_notes.push_back(note);
+            }
+        }
+
+        std::sort(staff_notes.begin(), staff_notes.end(), 
+            [](const cv::Rect& a, const cv::Rect& b) {
+                return a.x > b.x;
+            }
+        );
+
+        while (!staff_notes.empty()) {
+            std::vector<cv::Rect> chord_bounds {
+                staff_notes.back()
+            };
+            staff_notes.pop_back();
+
+            for (int i = staff_notes.size() - 1; i >= 0; --i) {
+                const cv::Rect& prev_chord_note = chord_bounds.back();
+                if (rectsOverlap(staff_notes[i], prev_chord_note)) {
+                    chord_bounds.push_back(staff_notes[i]);
+                    staff_notes.erase(staff_notes.begin() + i);
+                    ++i;
+                }
+            }
+
+            Chord chord;
+            for (const cv::Rect& chord_note : chord_bounds) {
+                int i = intersectingLineIndex(chord_note, staff);
+                int c4_distance = (5 - i) * 2 + 2;
+                chord.push_back(Note::quarter(c4_distance));
+            }
+            song.push_back(chord);
+        }
+    }
 
     // draw the rectangles
     cv::Mat rect_img = cv::Mat::zeros(image.size(), image.type());
@@ -310,4 +355,19 @@ std::vector<cv::Rect> noteRectangles(cv::Mat binary_notes) {
     }
 
     return bounding_rects;
+}
+
+int intersectingLineIndex(cv::Rect note_bounds, const std::vector<int>& staff) {
+    for (int i = 0; i < staff.size(); ++i) {
+        int line = staff[i];
+        if (note_bounds.y < line && (note_bounds.y + note_bounds.height) > line) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool rectsOverlap(const cv::Rect& a, const cv::Rect& b) {
+    return (a.x < (b.x + b.width) && a.x > b.x) ||
+           (b.x < (a.x + a.width) && b.x > a.x);
 }
