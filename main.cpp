@@ -1,8 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-#include <opencv/cv.h>
-
 #include <musicplayer.h>
 #include <musicreader.h>
 
