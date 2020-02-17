@@ -5,6 +5,6 @@
 
 #include <data.h>
 
-Song readImage(cv::Mat image);
+Song readImage(const char *fpath);
 
 #endif // DEEPBEEP_PIPELINE_H_

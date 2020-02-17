@@ -16,10 +16,10 @@ int main(int argc, char **argv) {
     }
     //proccess pipeline
     //initial image
-    cv::Mat image;
-    image = cv::imread(argv[1]);
+    // cv::Mat image;
+    // image = cv::imread(argv[1]);
 
-    Song song = readImage(image);
+    Song song = readImage(argv[1]);
 
     return 0;
 }

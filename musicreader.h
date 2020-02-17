@@ -1,7 +1,11 @@
 #ifndef DEEPBEEP_MUSICREADER_H_
 #define DEEPBEEP_MUSICREADER_H_
 
+#include <QImage>
 #include <QObject>
+
+#include <QQuickItem>
+#include <QUrl>
 
 #include <data.h>
 
@@ -11,7 +15,7 @@ public:
     explicit MusicReader(QObject *parent = nullptr);
 
 public slots:
-    void readSong();
+    void readSong(QUrl url);
 
 signals:
     void songRead(Song song);

@@ -19,7 +19,11 @@ std::vector<cv::Rect> noteRectangles(cv::Mat binary_notes);
 int intersectingLineIndex(cv::Rect note_bounds, const std::vector<int>& staff);
 bool rectsOverlap(const cv::Rect& a, const cv::Rect& b);
 
-Song readImage(cv::Mat image) {
+Song readImage(const char *fpath) {
+    std::cout << "entered pipeline" << std::endl;
+    std::cout << fpath << std::endl;
+    cv::Mat image;
+    image = cv::imread(fpath);
     Song song;
 
     //scales big phone pictures.
@@ -110,7 +114,7 @@ Song readImage(cv::Mat image) {
     cv::namedWindow("Bounding Rectangles", cv::WINDOW_AUTOSIZE);
     cv::imshow("Bounding Rectangles", rect_img);
 
-    cv::waitKey();
+    // cv::waitKey();
 
     return song;
 }
